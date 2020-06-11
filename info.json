@@ -1,0 +1,13 @@
+{
+    "project": [
+        {
+            "author": "Michael Peters",
+            "projectName": "clsl",
+            "version": "1.0.0",
+            "description": "a api licensing system",
+            "longDescription": "a REST endpoint to support checking the validity of a license key",
+            "githubLink": "https://github.com/michaelpeterswa/clsl",
+            "date": "06.11.2020"
+        }
+    ]
+}
