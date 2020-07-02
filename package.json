@@ -1,0 +1,32 @@
+{
+  "name": "clsl",
+  "version": "1.0.0",
+  "description": "an api-based licensing system",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon src/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/michaelpeterswa/clsl.git"
+  },
+  "author": "Michael Peters",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/michaelpeterswa/clsl/issues"
+  },
+  "homepage": "https://github.com/michaelpeterswa/clsl#readme",
+  "dependencies": {
+    "bcrypt": "^5.0.0",
+    "better-sqlite3": "^7.1.0",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "ejs": "^3.1.3",
+    "express": "^4.17.1",
+    "node-cache": "^5.1.2",
+    "nodemon": "^2.0.4",
+    "path": "^0.12.7",
+    "shortid": "^2.2.15",
+    "uuid": "^8.2.0"
+  }
+}
