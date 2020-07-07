@@ -35,8 +35,21 @@
         <h1 class="mt-5">Sign Up</h1>
         <p class="lead">Please enter username and password.</p>
         <br>
+
+        <div class="row" id="error">
+        </div>
+
+        <script>
+            var x = <%= passworderror %>;
+            console.log();
+            if (x) {
+                document.getElementById("error").innerHTML =
+                    '<div class="alert alert-danger" role="alert"><strong>Oh snap!</strong> Change a few things up and try submitting again.</div>';
+            }
+        </script>
+
         <form method="POST" action="/users/signup">
-            <div class="form-group">
+            <div class="row form-group">
                 <div class="input-group mb-3">
                     <input type="text" id="username" name="username" class="form-control" placeholder="Username"
                         aria-label="Link for shortening" aria-describedby="basic-addon2">

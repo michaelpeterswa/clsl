@@ -59,21 +59,39 @@ function sendToDatabase(data) {
 }
 
 function sendToCache(data) {
-  console.log(`Sending to Cache: ${data.id}`);
+  console.log(`Sending to Cache: ${data.username}`);
   // cache key is data.id, object is data, ttl is 10k
-  linkCache.set(data.id, data, 10000);
+  linkCache.set(data.username, data, 10000);
 }
 
-// function getFromCache(id) {
-//   console.log("Found Result!");
-//   var result = linkCache.get(id);
-//   return result;
-// }
+function getFromCache(id) {
+  console.log("Found Result!");
+  var result = linkCache.get(id);
+  return result;
+}
 
-// function checkCache(id) {
-//   console.log(`Checking cache for ID: ${id}`);
-//   return linkCache.has(id);
-// }
+function checkCache(username) {
+  console.log(`Checking cache for username: ${username}`);
+  return linkCache.has(username);
+}
+
+function checkDatabase(username) {
+  console.log(`Checking database for username: ${username}`);
+  //return linkCache.has(id);
+}
+
+function checkUsername(username) {
+  console.log(`Checking for username: ${username}`);
+  if (checkCache(username)) {
+    return true
+  }
+  else if (checkDatabase(username)) {
+    return true
+  }
+  else {
+    return false
+  }
+}
 
 // function getFromDatabase(id) {
 //   var result = undefined;
@@ -115,12 +133,21 @@ app.use(
   })
 );
 
+function renderSignup(res, bool) {
+  if (bool == true) {
+    res.render("signup", { passworderror: true })
+  }
+  else {
+    res.render("signup", { passworderror: false })
+  }
+}
+
 app.get("/", function (req, res) {
   res.render("index");
 });
 
 app.get("/signup", function (req, res) {
-  res.render("signup");
+  renderSignup(res, false);
 });
 
 app.get("/login", function (req, res) {
@@ -135,6 +162,10 @@ app.get("/css/bootstrap.css", function (req, res) {
   res.sendFile(path.join(__dirname + "/../css/bootstrap.css"));
 });
 
+app.get("/css/styles.css", function (req, res) {
+  res.sendFile(path.join(__dirname + "/../css/styles.css"));
+});
+
 // When form is clicked it posts to the endpoint below
 // then it redirects itself to the original page
 app.post("/users/log", (req, res) => {
@@ -146,7 +177,17 @@ app.post("/users/log", (req, res) => {
 app.post("/users/signup", (req, res) => {
   const pass = req.body.password;
   const use = req.body.username;
-  createID(use, pass);
+  console.log(use)
+  if (checkUsername(use)) {
+    res.redirect("/signup")
+    renderSignup(res, true)
+    res.end()
+  }
+  else {
+    createID(use, pass);
+    res.redirect('/dashboard')
+  }
+
 });
 
 // app.get("/:passed_shortid", function (req, res) {
