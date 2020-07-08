@@ -10,6 +10,7 @@ const NodeCache = require("node-cache");
 const { v4: uuidv4 } = require("uuid");
 const shortid = require("shortid");
 const bcrypt = require("bcrypt");
+var moment = require("moment");
 
 // port the app is currently serving to
 const app_port = 6981;
@@ -64,9 +65,9 @@ function sendToCache(data) {
   linkCache.set(data.username, data, 10000);
 }
 
-function getFromCache(id) {
+function getFromCache(username) {
   console.log("Found Result!");
-  var result = linkCache.get(id);
+  var result = linkCache.get(username);
   return result;
 }
 
@@ -75,56 +76,80 @@ function checkCache(username) {
   return linkCache.has(username);
 }
 
+function getFromDatabase(username) {
+  console.log(`Checking database for username: ${username}`);
+  var stmt = db.prepare(
+    `SELECT * FROM 'accounts' WHERE username='${username}'`
+  );
+  result = stmt.get();
+  if (result != undefined) {
+    console.log("Found Result!");
+    return result;
+  } else {
+    console.log("Result Not Found");
+    return false;
+  }
+}
+
+function getFromDatabaseID(id) {
+  console.log(`Checking database for id: ${id}`);
+  var stmt = db.prepare(`SELECT * FROM 'accounts' WHERE id='${id}'`);
+  result = stmt.get();
+  if (result != undefined) {
+    console.log("Found Result!");
+    return result;
+  } else {
+    console.log("Result Not Found");
+    return false;
+  }
+}
+
+function getFromDatabaseAPI(apikey) {
+  console.log(`Checking database for id: ${apikey}`);
+  var stmt = db.prepare(`SELECT * FROM 'accounts' WHERE apikey='${apikey}'`);
+  result = stmt.get();
+  if (result != undefined) {
+    console.log("Found Result!");
+    return result;
+  } else {
+    console.log("Result Not Found");
+    return false;
+  }
+}
+
 function checkDatabase(username) {
   console.log(`Checking database for username: ${username}`);
-  //return linkCache.has(id);
+  var stmt = db.prepare(
+    `SELECT * FROM 'accounts' WHERE username='${username}'`
+  );
+  result = stmt.get();
+  if (result != undefined) {
+    console.log("Found Result!");
+    return true;
+  } else {
+    console.log("Result Not Found");
+    return false;
+  }
 }
 
 function checkUsername(username) {
   console.log(`Checking for username: ${username}`);
   if (checkCache(username)) {
-    return true
-  }
-  else if (checkDatabase(username)) {
-    return true
-  }
-  else {
-    return false
+    return true;
+  } else if (checkDatabase(username)) {
+    return true;
+  } else {
+    return false;
   }
 }
 
-// function getFromDatabase(id) {
-//   var result = undefined;
-//   console.log(`Checking database for ID: ${id}`);
-//   var stmt = db.prepare(`SELECT * FROM 'links' WHERE id='${id}'`);
-//   result = stmt.get();
-//   if (result != undefined) {
-//     console.log("Found Result!");
-//     return result;
-//   } else {
-//     console.log("Result Not Found");
-//     return false;
-//   }
-// }
-
-// function checkDatabase(id) {
-//   console.log(`Checking database for ID: ${id}`);
-//   return true;
-// }
-
-// function either returns an object or a false value
-// function recieveRequest(id) {
-//   if (checkCache(id)) {
-//     // if key exists in the cache
-//     var cacheResult = getFromCache(id);
-//     return cacheResult;
-//   } else {
-//     var dbResult = getFromDatabase(id);
-//     return dbResult; // could return false
-//   }
-// }
-
-//////////////////////////////////
+function validatePass(username, password, object) {
+  console.log(object);
+  bcrypt.compare(password, object.hash, function (err, result) {
+    console.log(result);
+    return result;
+  });
+}
 
 app.use(cors());
 app.use(
@@ -132,14 +157,40 @@ app.use(
     extended: true,
   })
 );
+app.use(express.static("public"));
 
 function renderSignup(res, bool) {
   if (bool == true) {
-    res.render("signup", { passworderror: true })
+    res.render("signup", {
+      passworderror: true,
+    });
+  } else {
+    res.render("signup", {
+      passworderror: false,
+    });
   }
-  else {
-    res.render("signup", { passworderror: false })
+}
+
+function renderLogin(res, bool) {
+  if (bool == true) {
+    res.render("login", {
+      passworderror: true,
+    });
+  } else {
+    res.render("login", {
+      passworderror: false,
+    });
   }
+}
+
+function renderDash(res, val) {
+  const obj = getFromDatabaseID(val);
+  const username = obj.username;
+  const hash = obj.hash;
+  const id = obj.id;
+  const apikey = obj.apikey;
+
+  res.render("dashboard", { use: username, hash: hash, id: id, api: apikey });
 }
 
 app.get("/", function (req, res) {
@@ -147,23 +198,37 @@ app.get("/", function (req, res) {
 });
 
 app.get("/signup", function (req, res) {
-  renderSignup(res, false);
+  const bool = req.query.e;
+  console.log(Boolean(bool));
+  renderSignup(res, Boolean(bool));
 });
 
 app.get("/login", function (req, res) {
-  res.render("login");
+  const bool = req.query.e;
+  renderLogin(res, Boolean(bool));
 });
 
 app.get("/dashboard", function (req, res) {
-  res.render("dashboard");
+  const id = req.query.id;
+  renderDash(res, id);
 });
 
-app.get("/css/bootstrap.css", function (req, res) {
-  res.sendFile(path.join(__dirname + "/../css/bootstrap.css"));
-});
-
-app.get("/css/styles.css", function (req, res) {
-  res.sendFile(path.join(__dirname + "/../css/styles.css"));
+app.get("/api/v1/:apikey", function (req, res) {
+  const key = req.params.apikey;
+  const result = getFromDatabaseAPI(key);
+  if (result != false) {
+    res.status(200).json({
+      valid: true,
+      apikey: key,
+      time: moment().toISOString(),
+    });
+  } else {
+    res.status(200).json({
+      valid: false,
+      apikey: key,
+      time: moment().toISOString(),
+    });
+  }
 });
 
 // When form is clicked it posts to the endpoint below
@@ -171,39 +236,41 @@ app.get("/css/styles.css", function (req, res) {
 app.post("/users/log", (req, res) => {
   const pass = req.body.password;
   const use = req.body.username;
-  console.log(use);
+  if (checkCache(use) != true) {
+    if (checkDatabase(use) != true) {
+      res.redirect("/login?e=true");
+    } else {
+      const obj = getFromDatabase(use);
+      console.log(validatePass(use, pass, obj));
+      if (validatePass(use, pass, obj) != false) {
+        let url = "/dashboard?id=" + obj.id;
+        res.redirect(url);
+      } else {
+        res.redirect("/login?e=true");
+      }
+    }
+  } else {
+    const obj = getFromCache(use);
+    console.log(validatePass(use, pass, obj));
+    if (validatePass(use, pass, obj) != false) {
+      let url = "/dashboard?id=" + obj.id;
+      res.redirect(url);
+    } else {
+      res.redirect("/login?e=true");
+    }
+  }
 });
 
 app.post("/users/signup", (req, res) => {
   const pass = req.body.password;
   const use = req.body.username;
-  console.log(use)
   if (checkUsername(use)) {
-    res.redirect("/signup")
-    renderSignup(res, true)
-    res.end()
-  }
-  else {
+    res.redirect("/signup?e=true");
+  } else {
     createID(use, pass);
-    res.redirect('/dashboard')
+    res.redirect("/login");
   }
-
 });
-
-// app.get("/:passed_shortid", function (req, res) {
-//   console.log(`Endpoint accessed: /${req.params.passed_shortid}`);
-
-//   var id = req.params.passed_shortid;
-
-//   var result = recieveRequest(id);
-//   if (result != false) {
-//     console.log(`Redirecting to: ${result.url}\n`);
-//     res.redirect(result.url);
-//   } else {
-//     console.log("Returning a 404");
-//     res.status(404).render("404");
-//   }
-// });
 
 const app_server = app.listen(app_port, () =>
   console.log(`clsl server app listening on port ${app_port}!\n`)
